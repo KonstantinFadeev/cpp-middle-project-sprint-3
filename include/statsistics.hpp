@@ -1,11 +1,13 @@
 #pragma once
 
 #include <algorithm>
+#include <execution>
 #include <flat_map>
 #include <functional>
 #include <iterator>
 #include <numeric>
 #include <random>
+#include <span>
 #include <stdexcept>
 #include <string_view>
 #include <vector>
@@ -20,7 +22,13 @@ template <BookContainerLike T, typename Comparator = TransparentStringLess>
 auto buildAuthorHistogramFlat(const BookDatabase<T> &cont, Comparator comp = {}) {
     std::flat_map<std::string, int, Comparator> histogram(comp);
     for (const auto &book : cont) {
-        histogram[std::string(book.author)]++;
+        auto author_str = std::string(book.author);
+        auto it = histogram.find(author_str);
+        if (it != histogram.end()) {
+            it->second++;
+        } else {
+            histogram.insert({std::move(author_str), 1});
+        }
     }
     return histogram;
 }
@@ -29,13 +37,18 @@ template <BookIterator Iter, BookSentinel<Iter> Sent>
 auto calculateGenreRatings(Iter first, Sent last) {
     std::flat_map<Genre, std::pair<double, int>> temp;
     for (auto it = first; it != last; ++it) {
-        temp[it->genre].first += it->rating;
-        temp[it->genre].second++;
+        auto found = temp.find(it->genre);
+        if (found != temp.end()) {
+            found->second.first += it->rating;
+            found->second.second++;
+        } else {
+            temp.insert({it->genre, {it->rating, 1}});
+        }
     }
 
     std::flat_map<Genre, double> result;
     for (const auto &[genre, pair] : temp) {
-        result[genre] = pair.first / pair.second;
+        result.insert({genre, pair.first / pair.second});
     }
     return result;
 }
@@ -46,8 +59,17 @@ double calculateAverageRating(const BookDatabase<T> &db) {
         return 0.0;
     }
     double sum =
-        std::accumulate(db.begin(), db.end(), 0.0, [](double acc, const Book &book) { return acc + book.rating; });
+        std::transform_reduce(db.begin(), db.end(), 0.0, std::plus<>{}, [](const Book &book) { return book.rating; });
     return sum / db.size();
+}
+
+double calculateAverageRatingSpan(std::span<const Book> books) {
+    if (books.empty()) {
+        return 0.0;
+    }
+    double sum = std::transform_reduce(books.begin(), books.end(), 0.0, std::plus<>{},
+                                       [](const Book &book) { return book.rating; });
+    return sum / books.size();
 }
 
 template <BookContainerLike T>

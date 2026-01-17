@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <span>
 #include <vector>
 
 #include "book.hpp"
@@ -37,6 +38,17 @@ std::vector<std::reference_wrapper<const Book>> filterBooks(Iter first, Sent las
     for (auto it = first; it != last; ++it) {
         if (predicate(*it)) {
             result.emplace_back(std::cref(*it));
+        }
+    }
+    return result;
+}
+
+template <BookPredicate Pred>
+std::vector<std::reference_wrapper<const Book>> filterBooksSpan(std::span<const Book> books, Pred predicate) {
+    std::vector<std::reference_wrapper<const Book>> result;
+    for (const auto &book : books) {
+        if (predicate(book)) {
+            result.emplace_back(std::cref(book));
         }
     }
     return result;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <flat_set>
 #include <initializer_list>
 #include <print>
 #include <string>
@@ -81,6 +82,17 @@ private:
     BookContainer books_;
     AuthorContainer authors_;
 };
+
+using AuthorContainerFlat = std::flat_set<std::string, TransparentStringLess>;
+
+template <BookContainerLike T>
+AuthorContainerFlat extractAuthorsFlat(const BookDatabase<T> &db) {
+    AuthorContainerFlat authors;
+    for (const auto &book : db) {
+        authors.insert(std::string(book.author));
+    }
+    return authors;
+}
 
 }  // namespace bookdb
 
