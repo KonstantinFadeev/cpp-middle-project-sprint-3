@@ -8,10 +8,17 @@ namespace bookdb {
 
 enum class Genre { Fiction, NonFiction, SciFi, Biography, Mystery, Unknown };
 
-// Ваш код для constexpr преобразования строк в enum::Genre и наоборот здесь
-
 constexpr Genre GenreFromString(std::string_view s) {
-    // Ваш код здесь
+    if (s == "Fiction")
+        return Genre::Fiction;
+    if (s == "NonFiction")
+        return Genre::NonFiction;
+    if (s == "SciFi")
+        return Genre::SciFi;
+    if (s == "Biography")
+        return Genre::Biography;
+    if (s == "Mystery")
+        return Genre::Mystery;
     return Genre::Unknown;
 }
 
@@ -25,7 +32,13 @@ struct Book {
     double rating;
     int read_count;
 
-    // Ваш код для конструкторов здесь
+    constexpr Book(std::string title, std::string_view author, int year, Genre genre, double rating, int read_count)
+        : author(author), title(std::move(title)), year(year), genre(genre), rating(rating), read_count(read_count) {}
+
+    constexpr Book(std::string title, std::string_view author, int year, std::string_view genre_str, double rating,
+                   int read_count)
+        : author(author), title(std::move(title)), year(year), genre(GenreFromString(genre_str)), rating(rating),
+          read_count(read_count) {}
 };
 }  // namespace bookdb
 
@@ -52,11 +65,21 @@ struct formatter<bookdb::Genre, char> {
         return format_to(fc.out(), "{}", genre_str);
     }
 
+    constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+};
+
+template <>
+struct formatter<bookdb::Book, char> {
+    template <typename FormatContext>
+    auto format(const bookdb::Book &book, FormatContext &fc) const {
+        return format_to(fc.out(),
+                         "Book{{title: \"{}\", author: \"{}\", year: {}, genre: {}, rating: {}, read_count: {}}}",
+                         book.title, book.author, book.year, book.genre, book.rating, book.read_count);
+    }
+
     constexpr auto parse(format_parse_context &ctx) {
         return ctx.begin();  // Просто игнорируем пользовательский формат
     }
 };
-
-// Ваш код для std::formatter<Book> здесь
 
 }  // namespace std
