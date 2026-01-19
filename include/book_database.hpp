@@ -1,6 +1,5 @@
 #pragma once
 
-#include <flat_set>
 #include <initializer_list>
 #include <print>
 #include <string>
@@ -59,19 +58,24 @@ public:
     bool empty() const { return books_.empty(); }
 
     void PushBack(const Book &book) {
-        authors_.insert(std::string(book.author));
-        books_.push_back(book);
+        auto [it, inserted] = authors_.insert(std::string(book.author));
+        Book book_copy = book;
+        book_copy.author = *it;
+        books_.push_back(std::move(book_copy));
     }
 
     void PushBack(Book &&book) {
-        authors_.insert(std::string(book.author));
+        auto [it, inserted] = authors_.insert(std::string(book.author));
+        book.author = *it;
         books_.push_back(std::move(book));
     }
 
     template <typename... Args>
     void EmplaceBack(Args &&...args) {
-        books_.emplace_back(std::forward<Args>(args)...);
-        authors_.insert(std::string(books_.back().author));
+        Book temp_book(std::forward<Args>(args)...);
+        auto [it, inserted] = authors_.insert(std::string(temp_book.author));
+        temp_book.author = *it;
+        books_.push_back(std::move(temp_book));
     }
 
     const BookContainer &GetBooks() const { return books_; }
@@ -82,17 +86,6 @@ private:
     BookContainer books_;
     AuthorContainer authors_;
 };
-
-using AuthorContainerFlat = std::flat_set<std::string, TransparentStringLess>;
-
-template <BookContainerLike T>
-AuthorContainerFlat extractAuthorsFlat(const BookDatabase<T> &db) {
-    AuthorContainerFlat authors;
-    for (const auto &book : db) {
-        authors.insert(std::string(book.author));
-    }
-    return authors;
-}
 
 }  // namespace bookdb
 

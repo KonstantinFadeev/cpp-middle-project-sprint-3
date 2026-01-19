@@ -24,34 +24,29 @@ inline auto GenreIs(Genre genre) {
 
 template <BookPredicate... Preds>
 auto all_of(Preds... preds) {
-    return [=](const Book &book) { return (... && preds(book)); };
+    return [... ps = std::move(preds)](const Book &book) { return (... && ps(book)); };
 }
 
 template <BookPredicate... Preds>
 auto any_of(Preds... preds) {
-    return [=](const Book &book) { return (... || preds(book)); };
+    return [... ps = std::move(preds)](const Book &book) { return (... || ps(book)); };
 }
 
 template <BookIterator Iter, BookSentinel<Iter> Sent, BookPredicate Pred>
-std::vector<std::reference_wrapper<const Book>> filterBooks(Iter first, Sent last, Pred predicate) {
+[[nodiscard]] std::vector<std::reference_wrapper<const Book>> filterBooks(Iter first, Sent last, Pred predicate) {
     std::vector<std::reference_wrapper<const Book>> result;
-    for (auto it = first; it != last; ++it) {
-        if (predicate(*it)) {
-            result.emplace_back(std::cref(*it));
+    std::for_each(first, last, [&result, &predicate](const Book &book) {
+        if (predicate(book)) {
+            result.emplace_back(std::cref(book));
         }
-    }
+    });
     return result;
 }
 
 template <BookPredicate Pred>
-std::vector<std::reference_wrapper<const Book>> filterBooksSpan(std::span<const Book> books, Pred predicate) {
-    std::vector<std::reference_wrapper<const Book>> result;
-    for (const auto &book : books) {
-        if (predicate(book)) {
-            result.emplace_back(std::cref(book));
-        }
-    }
-    return result;
+[[nodiscard]] std::vector<std::reference_wrapper<const Book>> filterBooksSpan(std::span<const Book> books,
+                                                                              Pred predicate) {
+    return filterBooks(books.begin(), books.end(), predicate);
 }
 
 }  // namespace bookdb

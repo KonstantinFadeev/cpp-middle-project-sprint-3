@@ -203,8 +203,8 @@ TEST(StatisticsTest, GetTopNBy) {
 
     auto top = getTopNBy(db, 2, comp::LessByRating{});
     EXPECT_EQ(top.size(), 2);
-    EXPECT_EQ(top[0].get().rating, 4.8);
-    EXPECT_EQ(top[1].get().rating, 4.5);
+    EXPECT_DOUBLE_EQ(top[0].get().rating, 4.8);
+    EXPECT_DOUBLE_EQ(top[1].get().rating, 4.5);
 }
 
 TEST(StatisticsTest, GetTopNByMoreThanAvailable) {
@@ -314,7 +314,7 @@ TEST(StatisticsTest, CalculateAverageRatingSpan) {
                                Book{"Brave New World", "Aldous Huxley", 1932, Genre::SciFi, 3.0, 80}};
 
     std::span<const Book> span(books);
-    double avg = calculateAverageRatingSpan(span);
+    double avg = calculateAverageRating(span.begin(), span.end());
     EXPECT_DOUBLE_EQ(avg, 4.0);
 }
 
@@ -327,16 +327,4 @@ TEST(FiltersTest, FilterBooksSpan) {
     auto result = filterBooksSpan(span, RatingAbove(4.6));
     EXPECT_EQ(result.size(), 1);
     EXPECT_EQ(result[0].get().title, "The Great Gatsby");
-}
-
-TEST(BookDatabaseTest, ExtractAuthorsFlat) {
-    BookDatabase<> db;
-    db.EmplaceBack("1984", "George Orwell", 1949, Genre::SciFi, 4.5, 100);
-    db.EmplaceBack("Animal Farm", "George Orwell", 1945, Genre::Fiction, 4.4, 90);
-    db.EmplaceBack("Brave New World", "Aldous Huxley", 1932, Genre::SciFi, 4.3, 80);
-
-    auto authors = extractAuthorsFlat(db);
-    EXPECT_EQ(authors.size(), 2);
-    EXPECT_TRUE(authors.contains("George Orwell"));
-    EXPECT_TRUE(authors.contains("Aldous Huxley"));
 }
